@@ -1,0 +1,71 @@
+#ifndef RADIO_EMISSION_CHACON_HPP
+#define RADIO_EMISSION_CHACON_HPP
+
+#include <ostream> ///< std::ostream
+namespace chacon {
+  const unsigned DURATION_HIGH_BIT_ANY (310); //275 orinally, but tweaked.
+  const unsigned DURATION_LOW_BIT_TRUE (1340);//1225 orinally, but tweaked.
+  const unsigned DURATION_LOW_BIT_FALSE(310); // 275 orinally, but tweaked.
+
+	const int ERR_SETUID    (1);
+	const int ERR_LIBWIRING (2);
+  static const char* STR_ERROR [] = { "", "1-setuid", "2-lib wiring"};
+  
+  // count of chacon frames that will be sent at each transmission
+  //  - increasing this value might give better results but increases TR time 
+  const unsigned send_count = 1;
+  
+  enum eState {
+    OFF,
+    ON
+  };
+  std::ostream& operator<<(std::ostream& os, eState state);
+
+  struct command;
+  class socket;
+
+  void connect(unsigned pin);  
+  void disconnect(unsigned pin);
+  
+  void send_bit(unsigned pin, bool b);
+  void transmit(unsigned pin, const command& cmd);
+  
+  // TODO group not handled, always false
+  struct command {
+    unsigned  recipient_id;
+    unsigned  interrupt_id;
+    bool      is_group_cmd;
+    eState    target;
+
+    command(unsigned recipient, unsigned interrupt_id, eState target) 
+    : recipient_id(recipient)
+    , interrupt_id(interrupt_id)
+    , is_group_cmd(false)
+    , target(target)
+    { /* */ }
+  };
+  
+  // display a command nicely
+  std::ostream& operator<<(std::ostream& os, const command& cmd);
+
+  class socket {
+   public:
+     explicit socket(unsigned pin);
+     ~socket();
+     
+     void transmit(const command& cmd, unsigned count = chacon::send_count);
+   
+   // disallow copy and assignment
+   protected:
+     explicit socket( const socket& that);
+     socket& operator=(const socket& that);  
+   
+   private:
+    const unsigned m_pin;
+    // static method, tweak scheduler and init lib on first instance creation
+    void s_init();
+    void s_destroy();
+    static unsigned s_instances;
+  }; // endof class socket  
+}
+#endif //  RADIO_EMISSION_CHACON_HPP
